@@ -42,6 +42,7 @@
 #include <linux/version.h>
 #include <linux/input.h>
 #include <libudev.h>
+#include <stdint.h>
 
 #include "hidapi.h"
 
@@ -77,7 +78,7 @@ struct hid_device_ {
 	int uses_numbered_reports;
 };
 
-int hid_get_raw_descriptor(hid_device *dev, u_int8_t *descriptor_buffer, int* buffer_size);
+int hid_get_raw_descriptor(hid_device *dev, uint8_t *descriptor_buffer, int* buffer_size);
 
 static __u32 kernel_version = 0;
 
@@ -426,6 +427,12 @@ struct hid_device_info  HID_API_EXPORT *hid_enumerate(unsigned short vendor_id, 
 		raw_dev = udev_device_new_from_syspath(udev, sysfs_path);
 		dev_path = udev_device_get_devnode(raw_dev);
 
+		if (udev_device_get_is_initialized(raw_dev) != 1) {
+			/* udev has not initialized the device yet (which includes
+    setting permissions on the device node) */
+			goto next;
+		}
+
 		hid_dev = udev_device_get_parent_with_subsystem_devtype(
 			raw_dev,
 			"hid",
@@ -680,7 +687,7 @@ hid_device * HID_API_EXPORT hid_open_path(const char *path)
 }
 
 int HID_API_EXPORT hid_get_raw_descriptor(hid_device *dev,
-		u_int8_t *descriptor_buffer, int* buffer_size) {
+										  uint8_t *descriptor_buffer, int* buffer_size) {
 	/* Get the report descriptor */
 	int res, desc_size = 0;
 	struct hidraw_report_descriptor rpt_desc;

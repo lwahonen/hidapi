@@ -28,6 +28,7 @@
 #define HIDAPI_H__
 
 #include <wchar.h>
+#include <stdint.h>
 
 #ifdef _WIN32
       #define HID_API_EXPORT __declspec(dllexport)
@@ -79,7 +80,7 @@ extern "C" {
 
 			/** Only on Linux udev. */
 			int descriptor_size;
-			char* raw_descriptor;
+			uint8_t* raw_descriptor;
 			int device_path_size;
 			char* device_path;
 		};
