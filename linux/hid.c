@@ -21,12 +21,15 @@
         http://github.com/signal11/hidapi .
 ********************************************************/
 
+#define _POSIX_C_SOURCE 200809L
+
 /* C */
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <locale.h>
 #include <errno.h>
+#include <wchar.h>
 
 /* Unix */
 #include <unistd.h>
@@ -44,7 +47,7 @@
 #include <libudev.h>
 #include <stdint.h>
 
-#include "hidapi.h"
+#include <hidapi.h>
 
 /* Definitions from linux/hidraw.h. Since these are new, some distros
    may not have header files which contain them. */
@@ -105,7 +108,7 @@ static __u32 detect_kernel_version(void)
 
 static hid_device *new_hid_device(void)
 {
-	hid_device *dev = calloc(1, sizeof(hid_device));
+	hid_device *dev = (hid_device*)calloc(1, sizeof(hid_device));
 	dev->device_handle = -1;
 	dev->blocking = 1;
 	dev->uses_numbered_reports = 0;
@@ -124,7 +127,7 @@ static wchar_t *utf8_to_wchar_t(const char *utf8)
 		if ((size_t) -1 == wlen) {
 			return wcsdup(L"");
 		}
-		ret = calloc(wlen+1, sizeof(wchar_t));
+		ret = (wchar_t*)calloc(wlen+1, sizeof(wchar_t));
 		mbstowcs(ret, utf8, wlen+1);
 		ret[wlen] = 0x0000;
 	}
@@ -467,7 +470,7 @@ struct hid_device_info  HID_API_EXPORT *hid_enumerate(unsigned short vendor_id, 
 			struct hid_device_info *tmp;
 
 			/* VID/PID match. Create the record. */
-			tmp = calloc(1, sizeof(struct hid_device_info));
+			tmp = (struct hid_device_info*)calloc(1, sizeof(struct hid_device_info));
 			if (cur_dev) {
 				cur_dev->next = tmp;
 			}
@@ -552,8 +555,9 @@ struct hid_device_info  HID_API_EXPORT *hid_enumerate(unsigned short vendor_id, 
 						    cur_dev->raw_descriptor = calloc(2048, 1);
 						    cur_dev->descriptor_size=2048;
 						    int result = hid_get_raw_descriptor(handle, cur_dev->raw_descriptor, &cur_dev->descriptor_size);
-                            
-						    hid_close(handle);
+                            hid_close(handle);
+                            if(result != 0)
+                                goto next;
 					}
 				}
 
@@ -696,25 +700,29 @@ int HID_API_EXPORT hid_get_raw_descriptor(hid_device *dev,
 
 	/* Get Report Descriptor Size */
 	res = ioctl(dev->device_handle, HIDIOCGRDESCSIZE, &desc_size);
-	if (res < 0)
-		perror("HIDIOCGRDESCSIZE");
+	if (res < 0) {
+        perror("HIDIOCGRDESCSIZE");
+        return res;
+    }
 
 	/* Get Report Descriptor */
 	rpt_desc.size = desc_size;
 	res = ioctl(dev->device_handle, HIDIOCGRDESC, &rpt_desc);
 	if (res < 0) {
 		*buffer_size = -1;
+        perror("HIDIOCGRDESC");
+        return res;
 	} else {
-        if(rpt_desc.size > *buffer_size)
+        if(rpt_desc.size > *buffer_size) {
             perror("ENOBUFS");
+            return ENOBUFS;
+        }
 
-		/* Determine if this device uses numbered reports. */
-		int i = 0;
-		memset(descriptor_buffer, 0, *buffer_size);
+		/* Copy the descriptor into provided buffer. */
 		memcpy(descriptor_buffer, rpt_desc.value, rpt_desc.size);
 		*buffer_size = rpt_desc.size;
 	}
-	return res;
+	return 0;
 }
 
 int HID_API_EXPORT hid_write(hid_device *dev, const unsigned char *data, size_t length)
