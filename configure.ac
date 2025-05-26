@@ -16,11 +16,21 @@ AC_INIT([hidapi],[VERSION_STRING],[alan@signal11.us])
 lt_current="0"
 lt_revision="0"
 lt_age="0"
-LTLDFLAGS="-version-info ${lt_current}:${lt_revision}:${lt_age}"
+
+AC_ARG_ENABLE([static-only],
+	[AS_HELP_STRING([--enable-static-only],
+		[build only static libraries (default no)])],
+	[static_only=$enableval],
+	[static_only='no'])
+
+if test "x$static_only" = "xyes"; then
+	LTLDFLAGS="-static"
+else
+	LTLDFLAGS="-version-info ${lt_current}:${lt_revision}:${lt_age}"
+fi
 
 AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE([foreign -Wall -Werror])
-AC_CONFIG_MACRO_DIR([m4])
 
 m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
 LT_INIT

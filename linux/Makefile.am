@@ -1,6 +1,6 @@
 lib_LTLIBRARIES = libhidapi-hidraw.la
 libhidapi_hidraw_la_SOURCES = hid.c
-libhidapi_hidraw_la_LDFLAGS = $(LTLDFLAGS)
+libhidapi_hidraw_la_LDFLAGS = $(LTLDFLAGS) -no-undefined
 AM_CPPFLAGS = -I$(top_srcdir)/hidapi/ $(CFLAGS_HIDRAW)
 libhidapi_hidraw_la_LIBADD = $(LIBS_HIDRAW)
 
