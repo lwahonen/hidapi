@@ -192,12 +192,6 @@ extern "C" {
 			    Since version 0.13.0, @ref HID_API_VERSION >= HID_API_MAKE_VERSION(0, 13, 0)
 			*/
 			hid_bus_type bus_type;
-
-			/** Only on Linux udev. */
-			int descriptor_size;
-			uint8_t* raw_descriptor;
-			int device_path_size;
-			char* device_path;
 		};
 
 

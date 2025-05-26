@@ -20,15 +20,12 @@
         https://github.com/libusb/hidapi .
 ********************************************************/
 
-#define _POSIX_C_SOURCE 200809L
-
 /* C */
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <locale.h>
 #include <errno.h>
-#include <wchar.h>
 
 /* Unix */
 #include <unistd.h>
@@ -44,9 +41,8 @@
 #include <linux/version.h>
 #include <linux/input.h>
 #include <libudev.h>
-#include <stdint.h>
 
-#include <hidapi.h>
+#include "hidapi.h"
 
 #ifdef HIDAPI_ALLOW_BUILD_WORKAROUND_KERNEL_2_6_39
 /* This definitions first appeared in Linux Kernel 2.6.39 in linux/hidraw.h.
@@ -83,7 +79,6 @@ struct hid_device_ {
 	struct hid_device_info* device_info;
 };
 
-int hid_get_raw_descriptor(hid_device *dev, uint8_t *descriptor_buffer, int* buffer_size);
 static struct hid_api_version api_version = {
 	.major = HID_API_VERSION_MAJOR,
 	.minor = HID_API_VERSION_MINOR,
@@ -1029,8 +1024,6 @@ void  HID_API_EXPORT hid_free_enumeration(struct hid_device_info *devs)
 		free(d->serial_number);
 		free(d->manufacturer_string);
 		free(d->product_string);
-		free(d->raw_descriptor);
-		free(d->device_path);
 		free(d);
 		d = next;
 	}
@@ -1116,40 +1109,6 @@ hid_device * HID_API_EXPORT hid_open_path(const char *path)
 	}
 }
 
-int HID_API_EXPORT hid_get_raw_descriptor(hid_device *dev,
-										  uint8_t *descriptor_buffer, int* buffer_size) {
-	/* Get the report descriptor */
-	int res, desc_size = 0;
-	struct hidraw_report_descriptor rpt_desc;
-
-	memset(&rpt_desc, 0x0, sizeof(rpt_desc));
-
-	/* Get Report Descriptor Size */
-	res = ioctl(dev->device_handle, HIDIOCGRDESCSIZE, &desc_size);
-	if (res < 0) {
-        perror("HIDIOCGRDESCSIZE");
-        return res;
-    }
-
-	/* Get Report Descriptor */
-	rpt_desc.size = desc_size;
-	res = ioctl(dev->device_handle, HIDIOCGRDESC, &rpt_desc);
-	if (res < 0) {
-		*buffer_size = -1;
-        perror("HIDIOCGRDESC");
-        return res;
-	} else {
-        if(rpt_desc.size > *buffer_size) {
-            perror("ENOBUFS");
-            return ENOBUFS;
-        }
-
-		/* Copy the descriptor into provided buffer. */
-		memcpy(descriptor_buffer, rpt_desc.value, rpt_desc.size);
-		*buffer_size = rpt_desc.size;
-	}
-	return 0;
-}
 
 int HID_API_EXPORT hid_write(hid_device *dev, const unsigned char *data, size_t length)
 {
